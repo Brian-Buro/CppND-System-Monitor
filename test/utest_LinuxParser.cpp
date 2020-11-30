@@ -1,6 +1,7 @@
 #include "gtest/gtest.h"
 #include "../include/linux_parser.h"
 #include "../include/format.h"
+#include "../include/processor.h"
 #include <string>
 #include <iostream>
 #include <vector>
@@ -9,6 +10,7 @@
 
 
 namespace {
+
 
 TEST(LinuxParserTest, OperatingSystem){
   std::string OsName = "Ubuntu 20.10";
@@ -25,6 +27,13 @@ TEST(LinuxParserTest, MemUtilisation) {
   float defaultValue{0.0};
  // EXPECT_GE(LinuxParser::MemoryUtilization(), defaultValue);
   std::cout << "MemoryUtilization: " << LinuxParser::MemoryUtilization() << "\n";
+}
+TEST(LinuxParserTest, CPUUtilisation) {
+  std::vector<std::string> cpuUtilization = LinuxParser::CpuUtilization();
+  std::cout << "CpuUtilization" << "\n";
+  for (auto & el : cpuUtilization) {
+    std::cout << el << "\n";
+  }
 }
 
 
