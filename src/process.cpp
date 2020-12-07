@@ -25,16 +25,25 @@ std::string Process::PidFormatted() const {
   return std::string(pidFormatted);
 }
 
-// TODO: Return this process's CPU utilization
+// Done: Return this process's CPU utilization
 float Process::CpuUtilization() {
-  float activeJiffies = LinuxParser::ActiveJiffies(pid_);
-  float upTime = LinuxParser::UpTime(pid_);  // Time duration for which the process has run [Seconds]
+ /*****
+ * Reference: https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat
+ * 
+ * 1. The units are converted from Jiffies to seconds
+ * 2. The change in process active and total run times are calculated
+ * 3. The average cpu utilisation since last function call is calcuated
+ */
 
+  float activeJiffies = LinuxParser::ActiveJiffies(pid_); // Jiffies count while process was active
+  float upTime = LinuxParser::UpTime(pid_);               // Time duration for which the process has run [Seconds]
+  
+  // 1.
   float activeTime = activeJiffies / sysconf(_SC_CLK_TCK);
-
+  // 2.
   float changeInActiveTime = activeTime - preActiveTime_;
   float timeStep = upTime - preUpTime_;
-
+  // 3.
   cpuUtilization_ = changeInActiveTime / timeStep;
 
   // Update the pre values for the next function call.
@@ -52,7 +61,9 @@ string Process::Ram() { return LinuxParser::Ram(pid_); }
 
 // Redo, could extend with names: Return the user (name) that generated this
 // process
-string Process::User() { return LinuxParser::Uid(pid_); }
+string Process::User() { 
+  if (userName_ == "") userName_ = LinuxParser::Uid(pid_);
+  return userName_; }
 
 // Done: Return the age of this process (in seconds)
 long int Process::UpTime() { return LinuxParser::UpTime(pid_); }

@@ -1,6 +1,7 @@
 #include "linux_parser.h"
 
 #include <dirent.h>
+#include <stdio.h>
 #include <unistd.h>
 
 #include <iostream>
@@ -209,7 +210,7 @@ string LinuxParser::Ram(int pid) {
   float ramInKb = int(LinuxParser::FindValueInFile(key, fileName));
   const size_t bufferLength = 8;
   char ramInMb[bufferLength];
-  int fieldWidth = static_cast<int>(bufferLength-1); 
+  int fieldWidth = static_cast<int>(bufferLength - 1);
   snprintf(ramInMb, bufferLength, "%*.3f", fieldWidth, ramInKb / 1000);
   return std::string(ramInMb);
 }
@@ -219,15 +220,78 @@ string LinuxParser::Ram(int pid) {
 string LinuxParser::Uid(int pid) {
   std::string key = "Uid:";
   std::string fileName = kProcDirectory + to_string(pid) + kStatusFilename;
-  int uid = int(LinuxParser::FindValueInFile(key, fileName));
-  return to_string(uid);
+  int uid = static_cast<int>(LinuxParser::FindValueInFile(key, fileName));
+
+  std::ifstream stream(kPasswordPath);
+  std::string line;
+  std::string values;
+  std::string usrName(6, '_');
+
+  const int posUid{2};
+  const int posName{4};
+  bool uidFound{false};
+
+  if (!stream.is_open()) return usrName;
+
+  while (!uidFound && std::getline(stream, line)) {
+    std::istringstream linestream(line);
+    for (int posCur = 0; posCur <= posName; posCur++) {
+      std::getline(linestream, values, ':');
+      if (posCur == posUid && std::stoi(values) == uid) uidFound = true;
+    }
+  }
+
+  for (size_t idx = 0; idx <= usrName.size()-1 ; idx++) {
+    if (values[idx] == ',') break;
+    usrName[idx] = values[idx];
+  }
+  return usrName;
 }
+
+/*
+string LinuxParser::Uid(int pid) {
+  std::string key = "Uid:";
+  std::string fileName = kProcDirectory + to_string(pid) + kStatusFilename;
+  int uid = static_cast<int>(LinuxParser::FindValueInFile(key, fileName));
+
+  std::ifstream stream(kPasswordPath);
+  std::string line;
+  std::string values;
+  std::string usrName(6, ' ');
+
+  const int posUid{2};
+  const int posName{4};
+  int posCur{0};
+  bool uidFound{false};
+
+  if (!stream.is_open()) return usrName;
+
+  while (std::getline(stream, line)) {
+    std::istringstream linestream(line);
+    while (posCur <= posName && std::getline(linestream, values, ':')) {
+      if (posCur == posUid && std::stoi(values) == uid) uidFound = true;
+      if (uidFound && posCur == posName) {
+        while (values.back() == ',') {
+          values.pop_back();
+        }
+        usrName = values.substr(0, 6);
+      }
+      posCur++;
+    }
+    if (uidFound) break;
+    posCur = 0;
+  }
+
+
+  return usrName;
+}
+*/
 
 // TODO: Read and return the user associated with a process
 // REMOVE: [[maybe_unused]] once you define the function
 string LinuxParser::User(int pid [[maybe_unused]]) { return string(); }
 
-// TODO: Read and return the uptime of a process
+// TODO: Read and return the uptime of a process  --> use getvaluebyposstion
 // REMOVE: [[maybe_unused]] once you define the function
 long LinuxParser::UpTime(int pid) {
   std::ifstream stream(kProcDirectory + to_string(pid) + kStatFilename);

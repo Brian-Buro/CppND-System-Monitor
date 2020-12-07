@@ -24,6 +24,7 @@ class Process {
   float cpuUtilization_;
   float preActiveTime_{0};
   float preUpTime_{0};
+  std::string userName_{""};
 };
 
 #endif

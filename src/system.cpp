@@ -19,31 +19,40 @@ using std::vector;
 // TODO: Return the system's CPU
 Processor& System::Cpu() { return cpu_; }
 
-// Redo: Return a container composed of the system's processes
+// Done: Return a container composed of the system's processes
 vector<Process>& System::Processes() {
   vector<int> pids = LinuxParser::Pids();
-  bool pidNotFound{true};
+  vector<Process> currentProcesses(pids.size());
+  bool newProcess{true};
 
-  std::sort(pids.begin(), pids.end());
-  // Add new processes
+  /******************************************************  
+  Populate the vector of current processes.
+  If a process already exists, it is copied
+  from processes_, otherwise a new member in
+  the currentProcesses vector will be created
+  for it.
+  ******************************************************/
   for (size_t idx = 0; idx < pids.size(); idx++) {
     for (size_t y = 0; y < processes_.size(); y++) {
       if (processes_[y].Pid() == pids[idx]) {
-        pidNotFound = false;
+        currentProcesses.push_back(processes_[y]);
+        newProcess = false;
         break;
       }
     }
-    if (pidNotFound){
+    if (newProcess){
         Process p;
         p.Pid(pids[idx]);
-        processes_.push_back(p);
+        currentProcesses.push_back(p);
     }
-    pidNotFound = true;
+    newProcess = true;
   }
-  // Remove closed processes if required
 
   // Sort
-  std::sort(processes_.begin(), processes_.end());
+  std::sort(currentProcesses.begin(), currentProcesses.end());
+
+  // Update processes_
+  processes_ = currentProcesses;
   return processes_;
 }
 
