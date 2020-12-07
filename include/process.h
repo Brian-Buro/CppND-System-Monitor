@@ -10,6 +10,7 @@ class Process {
  public:
   int Pid();                               // Done: See src/process.cpp
   void Pid(int pid);
+  std::string PidFormatted() const;
   std::string User();                      // TODO: See src/process.cpp
   std::string Command();                   // Done: See src/process.cpp
   float CpuUtilization();                  // TODO: See src/process.cpp
@@ -20,6 +21,9 @@ class Process {
   // TODO: Declare any necessary private members
  private:
   int pid_;
+  float cpuUtilization_;
+  float preActiveTime_{0};
+  float preUpTime_{0};
 };
 
 #endif

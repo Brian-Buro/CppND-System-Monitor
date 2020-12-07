@@ -2,6 +2,7 @@
 
 #include <unistd.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <set>
 #include <string>
@@ -18,17 +19,31 @@ using std::vector;
 // TODO: Return the system's CPU
 Processor& System::Cpu() { return cpu_; }
 
-// Done: Return a container composed of the system's processes
+// Redo: Return a container composed of the system's processes
 vector<Process>& System::Processes() {
   vector<int> pids = LinuxParser::Pids();
-  vector<Process> processes(pids.size());
+  bool pidNotFound{true};
 
-  // Proceses factory, set pids
+  std::sort(pids.begin(), pids.end());
+  // Add new processes
   for (size_t idx = 0; idx < pids.size(); idx++) {
-    processes[idx].Pid(pids[idx]);
+    for (size_t y = 0; y < processes_.size(); y++) {
+      if (processes_[y].Pid() == pids[idx]) {
+        pidNotFound = false;
+        break;
+      }
+    }
+    if (pidNotFound){
+        Process p;
+        p.Pid(pids[idx]);
+        processes_.push_back(p);
+    }
+    pidNotFound = true;
   }
-  processes_ = processes;
+  // Remove closed processes if required
 
+  // Sort
+  std::sort(processes_.begin(), processes_.end());
   return processes_;
 }
 

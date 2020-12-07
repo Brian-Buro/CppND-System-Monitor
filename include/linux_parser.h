@@ -55,7 +55,7 @@ long int UpTime(int pid);
 
 // Generel functions
 double FindValueInFile(std::string const &key, std::string const &fileName);
-
+long int GetValueByPosition(const std::string &line, int position);
 };  // namespace LinuxParser
 
 #endif

@@ -7,7 +7,7 @@
 
 using LinuxParser::CPUStates;
 
-// TODO: Return the aggregate CPU utilization
+// Clean up: Return the aggregate CPU utilization
 // Reference:
 // https://stackoverflow.com/questions/23367857/accurate-calculation-of-cpu-usage-given-in-percentage-in-linux
 float Processor::Utilization() {

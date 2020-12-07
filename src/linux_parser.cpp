@@ -112,7 +112,40 @@ long LinuxParser::Jiffies() { return 0; }
 
 // TODO: Read and return the number of active jiffies for a PID
 // REMOVE: [[maybe_unused]] once you define the function
-long LinuxParser::ActiveJiffies(int pid [[maybe_unused]]) { return 0; }
+long LinuxParser::ActiveJiffies(int pid) {
+  long activeJiffies;
+  std::ifstream stream(kProcDirectory + to_string(pid) + kStatFilename);
+  string line;
+
+  if (stream.is_open()) {
+    std::getline(stream, line);
+  } else {
+    return 0;
+  }
+
+  long int utime = GetValueByPosition(line, 14);
+  long int stime = GetValueByPosition(line, 15);
+  long int cutime = GetValueByPosition(line, 16);
+  long int sutime = GetValueByPosition(line, 17);
+
+  // Source:
+  // https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
+  activeJiffies = utime + stime + cutime + sutime;
+
+  return activeJiffies;
+}
+
+long int LinuxParser::GetValueByPosition(const string& line, int position) {
+  long int valueByPosition;
+  std::istringstream stream(line);
+  string strValue;
+
+  while (position > 0 && stream >> strValue) {
+    position--;
+  }
+  valueByPosition = stol(strValue);
+  return valueByPosition;
+}
 
 // TODO: Read and return the number of active jiffies for the system
 long LinuxParser::ActiveJiffies() { return 0; }
@@ -132,7 +165,7 @@ vector<string> LinuxParser::CpuUtilization() {
       std::istringstream linestream(line);
       linestream >> key;
       if (key == "cpu") {
-        for (int idx = 0; idx < cpuUtilization.size(); idx++) {
+        for (size_t idx = 0; idx < cpuUtilization.size(); idx++) {
           linestream >> key;
           cpuUtilization[idx] = key;
         }
@@ -157,24 +190,27 @@ int LinuxParser::RunningProcesses() {
   return int(LinuxParser::FindValueInFile(key, fileName));
 }
 
-// Done: Read and return the command associated with a process
+// Redo: Read and return the command associated with a process
 // REMOVE: [[maybe_unused]] once you define the function
 string LinuxParser::Command(int pid) {
   std::ifstream stream(kProcDirectory + to_string(pid) + kCmdlineFilename);
-  string line;
-
-  std::getline(stream, line);
-  return line;
+  std::string line;
+  if (stream.is_open()) {
+    std::getline(stream, line);
+  }
+  return line + std::string(200, '_');
 }
 
-// Review: Read and return the memory used by a process
+// Done: Read and return the memory used by a process
 // REMOVE: [[maybe_unused]] once you define the function
 string LinuxParser::Ram(int pid) {
   std::string key = "VmSize:";
   std::string fileName = kProcDirectory + to_string(pid) + kStatusFilename;
   float ramInKb = int(LinuxParser::FindValueInFile(key, fileName));
-  char ramInMb[10];
-  sprintf(ramInMb, "%.3f", ramInKb / 1000);
+  const size_t bufferLength = 8;
+  char ramInMb[bufferLength];
+  int fieldWidth = static_cast<int>(bufferLength-1); 
+  snprintf(ramInMb, bufferLength, "%*.3f", fieldWidth, ramInKb / 1000);
   return std::string(ramInMb);
 }
 
@@ -196,7 +232,7 @@ string LinuxParser::User(int pid [[maybe_unused]]) { return string(); }
 long LinuxParser::UpTime(int pid) {
   std::ifstream stream(kProcDirectory + to_string(pid) + kStatFilename);
   string line;
-  string lineElement;
+  string startTime;
   int elementPosition = 22;
   long uptime;
 
@@ -204,13 +240,13 @@ long LinuxParser::UpTime(int pid) {
   if (stream.is_open()) {
     std::getline(stream, line);
     std::istringstream linestream(line);
-    while (elementPosition > 0 && linestream >> lineElement) {
+    while (elementPosition > 0 && linestream >> startTime) {
       elementPosition--;
     };
   };
 
   // Converte clocktickts to seconds
-  uptime = stol(lineElement) / sysconf(_SC_CLK_TCK);
+  uptime = UpTime() - (stol(startTime) / sysconf(_SC_CLK_TCK));
 
   return uptime;
 }
