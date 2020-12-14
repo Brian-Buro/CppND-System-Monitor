@@ -69,37 +69,24 @@ vector<int> LinuxParser::Pids() {
   return pids;
 }
 
-// TODO: Read and return the system memory utilization
+// Done: Read and return the system memory utilization
 float LinuxParser::MemoryUtilization() {
-/* MemoryUtiliation parses /proc/meminfo and calculates the current memory utilization
- * 
- * 
-*/
-  float memoryUtilization{0.0};
-  std::ifstream stream(kProcDirectory + kMeminfoFilename);
-  string line;
-  string key;
-  long value;
-  float memtotal{1}; // Used as denominator, should never be 0.
-  float memFree{0};
+// MemoryUtiliation calculates the current memory utilization from the /proc/memInfo file
+  std::string memInfoFileName{kProcDirectory + kMeminfoFilename};
 
-  if (stream.is_open()) {
-    while (std::getline(stream, line)) {
-      std::istringstream linestream(line);
-      linestream >> key >> value;
-      if (key == "MemTotal:") {
-        memtotal = value;
-      } else if (key == "MemFree:") {
-        memFree = value;
-      };
-    };
-  };
-  memoryUtilization = (memtotal - memFree) / memtotal;
+  float memtotal = LinuxParser::FindValueInFile("MemTotal:", memInfoFileName);
+  float memFree = LinuxParser::FindValueInFile("MemFree:", memInfoFileName);
+  float memoryUtilization = (memtotal - memFree) / memtotal;
+
   return memoryUtilization;
 }
 
 // Done: Read and return the system uptime
 long LinuxParser::UpTime() {
+/** Read the system uptime from /proc/uptime
+ * uptime contains just two floats and only the first one is required.
+ */
+
   long upTime{0};
   std::ifstream stream(kProcDirectory + kUptimeFilename);
   string line;
@@ -112,35 +99,46 @@ long LinuxParser::UpTime() {
   return upTime;
 }
 
-// TODO: Read and return the number of jiffies for the system
-long LinuxParser::Jiffies() { return 0; }
+// Done: Read and return the number of jiffies for the system
+// This was handled with CpuUtilization()
+// long LinuxParser::Jiffies() { return 0; }
 
-// TODO: Read and return the number of active jiffies for a PID
-// REMOVE: [[maybe_unused]] once you define the function
+// Done: Read and return the number of active jiffies for a PID
 long LinuxParser::ActiveJiffies(int pid) {
-  long activeJiffies;
+/** Parses /proc/<pid>/stat for all active Jiffy counts
+ *  and adds them together.
+*/
   std::ifstream stream(kProcDirectory + to_string(pid) + kStatFilename);
   string line;
 
+  // If the file can't be opened return 0
   if (stream.is_open()) {
     std::getline(stream, line);
   } else {
     return 0;
   }
 
-  long utime = GetValueByPosition(line, 14);
-  long stime = GetValueByPosition(line, 15);
-  long cutime = GetValueByPosition(line, 16);
-  long sutime = GetValueByPosition(line, 17);
+  // Get the 4 required Jiffy counts
+  long utime = GetValueByPosition(line, 14);  // CPU Time spent in user mode
+  long stime = GetValueByPosition(line, 15);  // CPU Time spent in kernel mode
+  long cutime = GetValueByPosition(line, 16); // Waited for children's CPU Time user mode
+  long sutime = GetValueByPosition(line, 17); // Waited for children's CPU Time kernel mode
 
-  // Source:
-  // https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
-  activeJiffies = utime + stime + cutime + sutime;
+  // Source: https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
+  long activeJiffies = utime + stime + cutime + sutime;
 
   return activeJiffies;
 }
 
 long LinuxParser::GetValueByPosition(const string& line, int position) {
+/** Returns the word at the requied position in a string.
+ *  Inputs: line, a string of words seperated with empty spaces.
+ *          position, the position of the requird word.
+ *  Numbers are considered as words.
+ *  E.g.
+ *  line: "I am 1.8 meters tall."
+ *  position 2 -> 1.8, position 3 -> meters.
+ */
   long valueByPosition;
   std::istringstream stream(line);
   string strValue;
@@ -153,13 +151,22 @@ long LinuxParser::GetValueByPosition(const string& line, int position) {
 }
 
 // TODO: Read and return the number of active jiffies for the system
-long LinuxParser::ActiveJiffies() { return 0; }
+// This was handled with CpuUtilization()
+// long LinuxParser::ActiveJiffies() { return 0; }
 
 // TODO: Read and return the number of idle jiffies for the system
-long LinuxParser::IdleJiffies() { return 0; }
+// This was handled with CpuUtilization()
+// long LinuxParser::IdleJiffies() { return 0; }
 
-// TODO: Read and return CPU utilization
+// Done: Read and return CPU utilization
 vector<string> LinuxParser::CpuUtilization() {
+/** Parses /proc/stat for all cpu utilitsation data.
+ * Returns a vector with all cpu data.
+ * 
+ * Each line in the file is read, until the line starting
+ * with "cpu" is found. All numbers in this line are entered
+ * to the output vector.
+*/
   std::ifstream stream(kProcDirectory + kStatFilename);
   string line;
   string key;
@@ -196,8 +203,13 @@ int LinuxParser::RunningProcesses() {
 }
 
 // Redo: Read and return the command associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
 string LinuxParser::Command(int pid) {
+/** The process command is the only line in /proc/<pid>/cmdline
+ *  The NULL char is removed and the cmd sting padded with empty
+ *  spaces. This is because ncures only updates new chars and if 
+ *  a shorter string is printed, the end of the old string will 
+ *  remain.
+ */
   std::ifstream stream(kProcDirectory + to_string(pid) + kCmdlineFilename);
   std::string line;
   if (stream.is_open()) {
@@ -210,34 +222,45 @@ string LinuxParser::Command(int pid) {
 }
 
 // Done: Read and return the memory used by a process
-// REMOVE: [[maybe_unused]] once you define the function
 string LinuxParser::Ram(int pid) {
-  std::string key = "VmSize:";
+/** The ram useage is read in and converted to MB and
+ *  formated
+ */
   std::string fileName = kProcDirectory + to_string(pid) + kStatusFilename;
+  std::string key = "VmSize:";
   float ramInKb = LinuxParser::FindValueInFile(key, fileName);
+
   const size_t bufferLength = 8;
   char ramInMb[bufferLength];
   int fieldWidth = static_cast<int>(bufferLength - 1);
   snprintf(ramInMb, bufferLength, "%*.3f", fieldWidth, ramInKb / 1000);
-  return std::string(ramInMb);
+
+  return std::string(ramInMb); // Convert char array to sting
 }
 
-// TODO: Read and return the user ID associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
+// Done: Read and return the user ID associated with a process
 string LinuxParser::Uid(int pid) {
   std::string key = "Uid:";
   std::string fileName = kProcDirectory + to_string(pid) + kStatusFilename;
   std::string uid = "";
 
   int uidInt = LinuxParser::FindValueInFile(key, fileName);
-  if (uidInt >= 0) uid = to_string(uidInt);
+  if (uidInt >= 0) uid = to_string(uidInt); // FindValueInFile returns -1 if key not found.
   return uid;
 }
 
 // TODO: Read and return the user associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
 string LinuxParser::User(int pid) { 
-  
+/** Find the User name for a pid
+ *  
+ *  Go through each line of /etc/passwd untill the pid is
+ *  found in position 2 in the line. Once the pid is found
+ *  get the user name in postion 4. 
+ * 
+ *  The user name sometimes contains other chars, which need
+ *  to be removed and it must be padded for the same reason 
+ *  in Command()
+ */  
   std::string uid = LinuxParser::Uid(pid);
   std::string usrName(6, ' ');
 
@@ -251,8 +274,10 @@ string LinuxParser::User(int pid) {
   const int posName{4};
   bool uidFound{false};
 
+  // If the file can't be opened return
   if (!stream.is_open()) return usrName;
 
+  // Get the user name, assign to values
   while (!uidFound && std::getline(stream, line)) {
     std::istringstream linestream(line);
     for (int posCur = 0; posCur <= posName; posCur++) {
@@ -261,6 +286,7 @@ string LinuxParser::User(int pid) {
     }
   }
 
+  // Copy each char in values upto a "," or "NULL"
   for (size_t idx = 0; idx <= usrName.size() - 1; idx++) {
     if (values[idx] == ',' || values[idx] == '\000') break;
     usrName[idx] = values[idx];
@@ -268,8 +294,7 @@ string LinuxParser::User(int pid) {
   return usrName;
 }
 
-// TODO: Read and return the uptime of a process
-// REMOVE: [[maybe_unused]] once you define the function
+// Done: Read and return the uptime of a process
 long LinuxParser::UpTime(int pid) {
   std::ifstream stream(kProcDirectory + to_string(pid) + kStatFilename);
   string line;
@@ -291,6 +316,16 @@ long LinuxParser::UpTime(int pid) {
 
 double LinuxParser::FindValueInFile(std::string const& key,
                                     std::string const& fileName) {
+/** Used for parsing files contining a key value pair on each line.
+ *  Inputs: key, name of the required value
+ *          fileName, file to seach in
+ * 
+ *  E.g. The file personHeight looks like this:
+ *    John 1.7
+ *    Tom 2
+ *    Sally 1.6
+ *  FindValueInFile(Sally, personHeight) returns 1.6
+*/
   std::ifstream stream(fileName);
   string line;
   string keyFound;

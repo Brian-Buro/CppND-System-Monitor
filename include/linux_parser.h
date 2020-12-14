@@ -41,10 +41,10 @@ enum CPUStates {
   kGuestNice_
 };
 std::vector<std::string> CpuUtilization();
-long Jiffies();
-long ActiveJiffies();
+// long Jiffies();
+// long ActiveJiffies();
 long ActiveJiffies(int pid);
-long IdleJiffies();
+//long IdleJiffies();
 
 // Processes
 std::string Command(int pid);
@@ -55,7 +55,7 @@ long int UpTime(int pid);
 
 // Generel functions
 double FindValueInFile(std::string const &key, std::string const &fileName);
-long int GetValueByPosition(const std::string &line, int position);
+long GetValueByPosition(const std::string &line, int position);
 };  // namespace LinuxParser
 
 #endif
