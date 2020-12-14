@@ -5,7 +5,7 @@
 #include "../include/linux_parser.h"
 #include "../include/format.h"
 
-#define pid 1108
+#define pid 854
 
 int main() {
 
@@ -13,6 +13,8 @@ int main() {
     pro.Pid(pid);
     long uptime = LinuxParser::UpTime(pid);
 
+    std::cout << "User: " << LinuxParser::User(pid) << "\n";
+    
     std::cout << "PID: " << pid << "\n";
     std::cout << "Clock Fqz: " << sysconf(_SC_CLK_TCK) << "\n";
 

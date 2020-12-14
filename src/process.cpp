@@ -70,7 +70,7 @@ string Process::Ram() { return LinuxParser::Ram(pid_); }
 // Redo, could extend with names: Return the user (name) that generated this
 // process
 string Process::User() { 
-  if (userName_ == "") userName_ = LinuxParser::Uid(pid_);
+  if (userName_ == "") userName_ = LinuxParser::User(pid_);
   return userName_; }
 
 // Done: Return the age of this process (in seconds)

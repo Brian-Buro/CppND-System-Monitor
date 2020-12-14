@@ -71,12 +71,16 @@ vector<int> LinuxParser::Pids() {
 
 // TODO: Read and return the system memory utilization
 float LinuxParser::MemoryUtilization() {
+/* MemoryUtiliation parses /proc/meminfo and calculates the current memory utilization
+ * 
+ * 
+*/
   float memoryUtilization{0.0};
   std::ifstream stream(kProcDirectory + kMeminfoFilename);
   string line;
   string key;
   long value;
-  float memtotal{0};
+  float memtotal{1}; // Used as denominator, should never be 0.
   float memFree{0};
 
   if (stream.is_open()) {
@@ -210,7 +214,7 @@ string LinuxParser::Command(int pid) {
 string LinuxParser::Ram(int pid) {
   std::string key = "VmSize:";
   std::string fileName = kProcDirectory + to_string(pid) + kStatusFilename;
-  float ramInKb = int(LinuxParser::FindValueInFile(key, fileName));
+  float ramInKb = LinuxParser::FindValueInFile(key, fileName);
   const size_t bufferLength = 8;
   char ramInMb[bufferLength];
   int fieldWidth = static_cast<int>(bufferLength - 1);
@@ -223,12 +227,25 @@ string LinuxParser::Ram(int pid) {
 string LinuxParser::Uid(int pid) {
   std::string key = "Uid:";
   std::string fileName = kProcDirectory + to_string(pid) + kStatusFilename;
-  int uid = static_cast<int>(LinuxParser::FindValueInFile(key, fileName));
+  std::string uid = "";
+
+  int uidInt = LinuxParser::FindValueInFile(key, fileName);
+  if (uidInt >= 0) uid = to_string(uidInt);
+  return uid;
+}
+
+// TODO: Read and return the user associated with a process
+// REMOVE: [[maybe_unused]] once you define the function
+string LinuxParser::User(int pid) { 
+  
+  std::string uid = LinuxParser::Uid(pid);
+  std::string usrName(6, ' ');
+
+  if (uid.empty()) return usrName;
 
   std::ifstream stream(kPasswordPath);
   std::string line;
   std::string values;
-  std::string usrName(6, ' ');
 
   const int posUid{2};
   const int posName{4};
@@ -240,44 +257,34 @@ string LinuxParser::Uid(int pid) {
     std::istringstream linestream(line);
     for (int posCur = 0; posCur <= posName; posCur++) {
       std::getline(linestream, values, ':');
-      if (posCur == posUid && std::stoi(values) == uid) uidFound = true;
+      if (posCur == posUid && uid.compare(values) == 0) uidFound = true;
     }
   }
 
-  //if (values.size() > 1) values.pop_back();
-  
-  for (size_t idx = 0; idx <= usrName.size()-1 ; idx++) {
+  for (size_t idx = 0; idx <= usrName.size() - 1; idx++) {
     if (values[idx] == ',' || values[idx] == '\000') break;
     usrName[idx] = values[idx];
   }
   return usrName;
 }
 
-
-// TODO: Read and return the user associated with a process
-// REMOVE: [[maybe_unused]] once you define the function
-string LinuxParser::User(int pid [[maybe_unused]]) { return string(); }
-
-// TODO: Read and return the uptime of a process  --> use getvaluebyposstion
+// TODO: Read and return the uptime of a process
 // REMOVE: [[maybe_unused]] once you define the function
 long LinuxParser::UpTime(int pid) {
   std::ifstream stream(kProcDirectory + to_string(pid) + kStatFilename);
   string line;
-  string startTime;
-  int elementPosition = 22;
+  long startTime;
   long uptime;
 
   // Get the clockticks value from stats file
   if (stream.is_open()) {
     std::getline(stream, line);
     std::istringstream linestream(line);
-    while (elementPosition > 0 && linestream >> startTime) {
-      elementPosition--;
-    };
+    startTime = GetValueByPosition(line, 22);
   };
 
   // Converte clocktickts to seconds
-  uptime = UpTime() - (stol(startTime) / sysconf(_SC_CLK_TCK));
+  uptime = UpTime() - (startTime / sysconf(_SC_CLK_TCK));
 
   return uptime;
 }
@@ -287,7 +294,7 @@ double LinuxParser::FindValueInFile(std::string const& key,
   std::ifstream stream(fileName);
   string line;
   string keyFound;
-  double value{0.0};
+  double value{-1};
 
   if (stream.is_open()) {
     while (std::getline(stream, line)) {
