@@ -14,6 +14,7 @@ class Process {
   std::string User();                      // TODO: See src/process.cpp
   std::string Command();                   // Done: See src/process.cpp
   float CpuUtilization();                  // TODO: See src/process.cpp
+  void UpdateCpuUtilization();
   std::string Ram();                       // Done: See src/process.cpp
   long int UpTime();                       // TODO: See src/process.cpp
   bool operator<(Process const& a) const;  // TODO: See src/process.cpp
@@ -25,6 +26,7 @@ class Process {
   float preActiveTime_{0};
   float preUpTime_{0};
   std::string userName_{""};
+  std::string command_{""};
 };
 
 #endif

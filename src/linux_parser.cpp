@@ -124,10 +124,10 @@ long LinuxParser::ActiveJiffies(int pid) {
     return 0;
   }
 
-  long int utime = GetValueByPosition(line, 14);
-  long int stime = GetValueByPosition(line, 15);
-  long int cutime = GetValueByPosition(line, 16);
-  long int sutime = GetValueByPosition(line, 17);
+  long utime = GetValueByPosition(line, 14);
+  long stime = GetValueByPosition(line, 15);
+  long cutime = GetValueByPosition(line, 16);
+  long sutime = GetValueByPosition(line, 17);
 
   // Source:
   // https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat/16736599#16736599
@@ -136,8 +136,8 @@ long LinuxParser::ActiveJiffies(int pid) {
   return activeJiffies;
 }
 
-long int LinuxParser::GetValueByPosition(const string& line, int position) {
-  long int valueByPosition;
+long LinuxParser::GetValueByPosition(const string& line, int position) {
+  long valueByPosition;
   std::istringstream stream(line);
   string strValue;
 
@@ -199,7 +199,10 @@ string LinuxParser::Command(int pid) {
   if (stream.is_open()) {
     std::getline(stream, line);
   }
-  return line + std::string(200, '_');
+
+  if (line.size() > 1) line.pop_back();
+  line += std::string(200, ' ');
+  return line;
 }
 
 // Done: Read and return the memory used by a process
@@ -225,7 +228,7 @@ string LinuxParser::Uid(int pid) {
   std::ifstream stream(kPasswordPath);
   std::string line;
   std::string values;
-  std::string usrName(6, '_');
+  std::string usrName(6, ' ');
 
   const int posUid{2};
   const int posName{4};
@@ -241,51 +244,15 @@ string LinuxParser::Uid(int pid) {
     }
   }
 
+  //if (values.size() > 1) values.pop_back();
+  
   for (size_t idx = 0; idx <= usrName.size()-1 ; idx++) {
-    if (values[idx] == ',') break;
+    if (values[idx] == ',' || values[idx] == '\000') break;
     usrName[idx] = values[idx];
   }
   return usrName;
 }
 
-/*
-string LinuxParser::Uid(int pid) {
-  std::string key = "Uid:";
-  std::string fileName = kProcDirectory + to_string(pid) + kStatusFilename;
-  int uid = static_cast<int>(LinuxParser::FindValueInFile(key, fileName));
-
-  std::ifstream stream(kPasswordPath);
-  std::string line;
-  std::string values;
-  std::string usrName(6, ' ');
-
-  const int posUid{2};
-  const int posName{4};
-  int posCur{0};
-  bool uidFound{false};
-
-  if (!stream.is_open()) return usrName;
-
-  while (std::getline(stream, line)) {
-    std::istringstream linestream(line);
-    while (posCur <= posName && std::getline(linestream, values, ':')) {
-      if (posCur == posUid && std::stoi(values) == uid) uidFound = true;
-      if (uidFound && posCur == posName) {
-        while (values.back() == ',') {
-          values.pop_back();
-        }
-        usrName = values.substr(0, 6);
-      }
-      posCur++;
-    }
-    if (uidFound) break;
-    posCur = 0;
-  }
-
-
-  return usrName;
-}
-*/
 
 // TODO: Read and return the user associated with a process
 // REMOVE: [[maybe_unused]] once you define the function

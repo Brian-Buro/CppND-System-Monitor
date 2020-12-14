@@ -26,25 +26,22 @@ vector<Process>& System::Processes() {
   bool newProcess{true};
 
   /******************************************************  
-  Populate the vector of current processes.
-  If a process already exists, it is copied
-  from processes_, otherwise a new member in
-  the currentProcesses vector will be created
-  for it.
+  Populate the new vector of current processes.
+  If a process already exists, all information is copied 
+  from processes_, otherwise just the pid will be set.
   ******************************************************/
   for (size_t idx = 0; idx < pids.size(); idx++) {
     for (size_t y = 0; y < processes_.size(); y++) {
       if (processes_[y].Pid() == pids[idx]) {
-        currentProcesses.push_back(processes_[y]);
+        currentProcesses[idx] = processes_[y];
         newProcess = false;
         break;
       }
     }
     if (newProcess){
-        Process p;
-        p.Pid(pids[idx]);
-        currentProcesses.push_back(p);
+        currentProcesses[idx].Pid(pids[idx]);
     }
+    currentProcesses[idx].UpdateCpuUtilization();
     newProcess = true;
   }
 

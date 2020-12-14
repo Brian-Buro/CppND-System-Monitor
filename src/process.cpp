@@ -14,7 +14,9 @@ using std::vector;
 
 // Done: Return this process's ID
 int Process::Pid() { return pid_; }
+
 void Process::Pid(int pid) { pid_ = pid; };
+
 std::string Process::PidFormatted() const {
   const size_t bufferLength = 7;
   char pidFormatted[bufferLength];
@@ -26,7 +28,12 @@ std::string Process::PidFormatted() const {
 }
 
 // Done: Return this process's CPU utilization
-float Process::CpuUtilization() {
+float Process::CpuUtilization(){
+  return cpuUtilization_;
+}
+
+// Done: Calculate this process's CPU utilization
+void Process::UpdateCpuUtilization() {
  /*****
  * Reference: https://stackoverflow.com/questions/16726779/how-do-i-get-the-total-cpu-usage-of-an-application-from-proc-pid-stat
  * 
@@ -49,12 +56,13 @@ float Process::CpuUtilization() {
   // Update the pre values for the next function call.
   preActiveTime_ = activeTime;
   preUpTime_ = upTime;
-
-  return cpuUtilization_;
 }
 
+
 // Done: Return the command that generated this process
-string Process::Command() { return LinuxParser::Command(pid_); }
+string Process::Command() { 
+  if (command_ == "") command_ = LinuxParser::Command(pid_);
+  return command_; }
 
 // Done: Return this process's memory utilization
 string Process::Ram() { return LinuxParser::Ram(pid_); }
